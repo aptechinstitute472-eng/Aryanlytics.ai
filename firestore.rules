@@ -1,0 +1,157 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Shared security primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // UserProfile validation blueprint
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll([
+        'uid', 'displayName', 'email', 'photoURL',
+        'preferredLanguage', 'preferredRigor', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid', 'displayName', 'email', 'photoURL',
+        'preferredLanguage', 'preferredRigor', 'createdAt', 'updatedAt'
+      ]) &&
+      data.uid is string && data.uid == userId && isValidId(data.uid) &&
+      data.displayName is string && data.displayName.size() <= 100 &&
+      data.email is string && data.email.size() <= 254 &&
+      data.photoURL is string && data.photoURL.size() <= 500 &&
+      data.preferredLanguage in ['english', 'roman_urdu', 'bilingual'] &&
+      data.preferredRigor in ['standard', 'strict', 'academic'] &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    // AnalysisRecord validation blueprint
+    function isValidAnalysisRecord(data, userId, analysisId) {
+      return data.keys().hasAll([
+        'id', 'ownerId', 'title', 'detectedType', 'modeUsed', 'languageUsed',
+        'rigorUsed', 'verdict', 'verdictHeadline', 'executiveSummary', 'intentAnalysis',
+        'variablesAndSymbols', 'equationSteps', 'issues', 'goodPatterns', 'badPatterns',
+        'patternDifferentiationSummary', 'isCorrectAsIs', 'resolvedOutput',
+        'resolvedOutputFormat', 'changesLog', 'verificationSteps', 'originalInput',
+        'followUps', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'ownerId', 'title', 'detectedType', 'modeUsed', 'languageUsed',
+        'rigorUsed', 'verdict', 'verdictHeadline', 'executiveSummary', 'intentAnalysis',
+        'variablesAndSymbols', 'equationSteps', 'issues', 'goodPatterns', 'badPatterns',
+        'patternDifferentiationSummary', 'isCorrectAsIs', 'resolvedOutput',
+        'resolvedOutputFormat', 'changesLog', 'verificationSteps', 'originalInput',
+        'followUps', 'createdAt', 'updatedAt'
+      ]) &&
+      data.id is string && data.id == analysisId && isValidId(data.id) &&
+      data.ownerId is string && data.ownerId == userId && isValidId(data.ownerId) &&
+      data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+      data.detectedType is string && data.detectedType.size() >= 1 && data.detectedType.size() <= 120 &&
+      data.modeUsed in ['auto', 'math', 'prompt', 'data', 'sql', 'code'] &&
+      data.languageUsed in ['english', 'roman_urdu', 'bilingual'] &&
+      data.rigorUsed in ['standard', 'strict', 'academic'] &&
+      data.verdict in ['valid', 'needs_refinement', 'flawed'] &&
+      data.verdictHeadline is string && data.verdictHeadline.size() <= 500 &&
+      data.executiveSummary is string && data.executiveSummary.size() <= 4000 &&
+      data.intentAnalysis is string && data.intentAnalysis.size() <= 4000 &&
+      data.variablesAndSymbols is list && data.variablesAndSymbols.size() <= 30 &&
+      (data.variablesAndSymbols.size() == 0 || data.variablesAndSymbols[0] is map) &&
+      data.equationSteps is list && data.equationSteps.size() <= 25 &&
+      (data.equationSteps.size() == 0 || data.equationSteps[0] is map) &&
+      data.issues is list && data.issues.size() <= 30 &&
+      (data.issues.size() == 0 || data.issues[0] is map) &&
+      data.goodPatterns is list && data.goodPatterns.size() <= 10 &&
+      (data.goodPatterns.size() == 0 || data.goodPatterns[0] is map) &&
+      data.badPatterns is list && data.badPatterns.size() <= 10 &&
+      (data.badPatterns.size() == 0 || data.badPatterns[0] is map) &&
+      data.patternDifferentiationSummary is string && data.patternDifferentiationSummary.size() <= 3000 &&
+      data.isCorrectAsIs is bool &&
+      data.resolvedOutput is string && data.resolvedOutput.size() <= 60000 &&
+      data.resolvedOutputFormat in ['markdown', 'json', 'sql', 'code', 'text'] &&
+      data.changesLog is list && data.changesLog.size() <= 40 &&
+      (data.changesLog.size() == 0 || data.changesLog[0] is map) &&
+      data.verificationSteps is list && data.verificationSteps.size() <= 15 &&
+      (data.verificationSteps.size() == 0 || (data.verificationSteps[0] is string && data.verificationSteps[0].size() <= 1000)) &&
+      data.originalInput is string && data.originalInput.size() <= 50000 &&
+      data.followUps is list && data.followUps.size() <= 50 &&
+      (data.followUps.size() == 0 || data.followUps[0] is map) &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isOwner(userId) && isValidId(userId);
+      allow list: if false;
+      allow create: if isVerifiedUser() &&
+        isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'email', 'photoURL', 'preferredLanguage', 'preferredRigor', 'updatedAt'
+        ]);
+      allow delete: if false;
+
+      match /analyses/{analysisId} {
+        allow get: if isSignedIn() && isOwner(userId) && isValidId(userId) && isValidId(analysisId);
+        allow list: if isSignedIn() && isOwner(userId);
+        allow create: if isVerifiedUser() &&
+          isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(analysisId) &&
+          isValidAnalysisRecord(incoming(), userId, analysisId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isVerifiedUser() &&
+          isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(analysisId) &&
+          isValidAnalysisRecord(incoming(), userId, analysisId) &&
+          incoming().id == existing().id &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['followUps', 'updatedAt']);
+        allow delete: if isVerifiedUser() &&
+          isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(analysisId);
+      }
+    }
+  }
+}

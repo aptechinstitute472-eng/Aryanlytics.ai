@@ -1,0 +1,211 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Authenticated user profile and workspace preferences.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "preferredLanguage": {
+          "type": "string",
+          "enum": ["english", "roman_urdu", "bilingual"]
+        },
+        "preferredRigor": {
+          "type": "string",
+          "enum": ["standard", "strict", "academic"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "email",
+        "photoURL",
+        "preferredLanguage",
+        "preferredRigor",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AnalysisRecord": {
+      "title": "Analysis Record",
+      "description": "Persisted equation, data, prompt, or code analysis with pattern differentiation, solution steps, and follow-up thread.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "detectedType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "modeUsed": {
+          "type": "string",
+          "enum": ["auto", "math", "prompt", "data", "sql", "code"]
+        },
+        "languageUsed": {
+          "type": "string",
+          "enum": ["english", "roman_urdu", "bilingual"]
+        },
+        "rigorUsed": {
+          "type": "string",
+          "enum": ["standard", "strict", "academic"]
+        },
+        "verdict": {
+          "type": "string",
+          "enum": ["valid", "needs_refinement", "flawed"]
+        },
+        "verdictHeadline": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "executiveSummary": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "intentAnalysis": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "variablesAndSymbols": {
+          "type": "array",
+          "description": "Up to 30 variable and symbol declarations."
+        },
+        "equationSteps": {
+          "type": "array",
+          "description": "Up to 25 derivation steps."
+        },
+        "issues": {
+          "type": "array",
+          "description": "Up to 30 diagnostic findings."
+        },
+        "goodPatterns": {
+          "type": "array",
+          "description": "Up to 10 recommended patterns."
+        },
+        "badPatterns": {
+          "type": "array",
+          "description": "Up to 10 anti-patterns."
+        },
+        "patternDifferentiationSummary": {
+          "type": "string",
+          "maxLength": 3000
+        },
+        "isCorrectAsIs": {
+          "type": "boolean"
+        },
+        "resolvedOutput": {
+          "type": "string",
+          "maxLength": 60000
+        },
+        "resolvedOutputFormat": {
+          "type": "string",
+          "enum": ["markdown", "json", "sql", "code", "text"]
+        },
+        "changesLog": {
+          "type": "array",
+          "description": "Up to 40 itemized changes."
+        },
+        "verificationSteps": {
+          "type": "array",
+          "description": "Up to 15 verification steps."
+        },
+        "originalInput": {
+          "type": "string",
+          "maxLength": 50000
+        },
+        "followUps": {
+          "type": "array",
+          "description": "Up to 50 follow-up Q&A messages."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "title",
+        "detectedType",
+        "modeUsed",
+        "languageUsed",
+        "rigorUsed",
+        "verdict",
+        "verdictHeadline",
+        "executiveSummary",
+        "intentAnalysis",
+        "variablesAndSymbols",
+        "equationSteps",
+        "issues",
+        "goodPatterns",
+        "badPatterns",
+        "patternDifferentiationSummary",
+        "isCorrectAsIs",
+        "resolvedOutput",
+        "resolvedOutputFormat",
+        "changesLog",
+        "verificationSteps",
+        "originalInput",
+        "followUps",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profile and preferences document owned strictly by {userId}."
+    },
+    "/users/{userId}/analyses/{analysisId}": {
+      "schema": { "$ref": "#/entities/AnalysisRecord" },
+      "description": "User-owned equation, data, prompt, and code analysis sessions with follow-up messages."
+    }
+  }
+}

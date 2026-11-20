@@ -1,0 +1,6 @@
+{
+  "name": "Resolved by Aryan",
+  "description": "AI-powered task, prompt, and data problem analyzer that differentiates good vs. bad patterns, validates correctness, and automatically resolves flawed inputs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
